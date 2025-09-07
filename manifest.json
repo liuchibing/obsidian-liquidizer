@@ -1,11 +1,11 @@
 {
-	"id": "sample-plugin",
-	"name": "Sample Plugin",
+	"id": "liquidizer",
+	"name": "Liquidizer",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "Demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
-	"fundingUrl": "https://obsidian.md/pricing",
+	"description": "Use liquid syntax to create multiple versions from a single document.",
+	"author": "liuchibing",
+	"authorUrl": "https://liuchibing.com",
+	"fundingUrl": "https://liuchibing.com",
 	"isDesktopOnly": false
 }
