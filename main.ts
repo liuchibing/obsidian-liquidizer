@@ -1,4 +1,8 @@
-import { diffAndUpdate, liquid } from "helpers";
+import {
+	FrontmatterFastEditor,
+	VIEW_TYPE_FRONTMATTER_FAST_EDITOR,
+} from "frontmatter-fast-editor";
+import { diffAndUpdate, getLiquid } from "helpers";
 import {
 	App,
 	getFrontMatterInfo,
@@ -8,6 +12,7 @@ import {
 	Plugin,
 	PluginSettingTab,
 	Setting,
+	WorkspaceLeaf,
 } from "obsidian";
 
 // Remember to rename these classes and interfaces!
@@ -68,7 +73,7 @@ export default class LiquidizerPlugin extends Plugin {
 							);
 						}
 						// render content with liquid
-						return liquid.parseAndRender(content, {
+						return getLiquid(this.app).parseAndRender(content, {
 							...frontmatter,
 						});
 					})
@@ -104,6 +109,7 @@ export default class LiquidizerPlugin extends Plugin {
 			}
 		);
 
+		// Try to patch MarkdownPreviewView to support liquid templates in preview mode
 		// console.log(MarkdownPreviewView);
 		// console.log(MarkdownPreviewView.prototype.onRender);
 		// this.originalOnRender = MarkdownPreviewView.prototype.onRender;
@@ -128,6 +134,13 @@ export default class LiquidizerPlugin extends Plugin {
 		// 	localOriginalOnRender.apply(proxyThis, arguments);
 		// }
 
+		// Register the view (WIP)
+		this.registerView(
+			VIEW_TYPE_FRONTMATTER_FAST_EDITOR,
+			(leaf) => new FrontmatterFastEditor(leaf)
+		);
+		this.activateView()
+
 		// Provide Live Preview of Liquid Templates
 		this.registerMarkdownPostProcessor(async (element, context) => {
 			// Check if the frontmatter has a specific flag to enable liquid processing
@@ -139,7 +152,9 @@ export default class LiquidizerPlugin extends Plugin {
 				element.classList.add("liquidized");
 			});
 			if (element.parentElement) {
-				const buttons = element.parentElement.getElementsByClassName("liquid-render-button");
+				const buttons = element.parentElement.getElementsByClassName(
+					"liquid-render-button"
+				);
 				if (buttons.length > 0) {
 					// button already exists
 					return;
@@ -155,7 +170,7 @@ export default class LiquidizerPlugin extends Plugin {
 						return;
 					}
 					try {
-						const rendered = await liquid.parseAndRender(
+						const rendered = await getLiquid(this.app).parseAndRender(
 							container.outerHTML,
 							{ ...context.frontmatter }
 						);
@@ -165,7 +180,10 @@ export default class LiquidizerPlugin extends Plugin {
 						diffAndUpdate(container, rendered);
 					} catch (error) {
 						new Notice("Error rendering liquid template: " + error);
-						console.error("Error rendering liquid template:", error);
+						console.error(
+							"Error rendering liquid template:",
+							error
+						);
 					}
 				};
 			}
@@ -207,6 +225,28 @@ export default class LiquidizerPlugin extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+	}
+
+	async activateView() {
+		const { workspace } = this.app;
+
+		let leaf: WorkspaceLeaf | null = null;
+		const leaves = workspace.getLeavesOfType(VIEW_TYPE_FRONTMATTER_FAST_EDITOR);
+
+		if (leaves.length > 0) {
+			// A leaf with our view already exists, use that
+			leaf = leaves[0];
+		} else {
+			// Our view could not be found in the workspace, create a new leaf
+			// in the right sidebar for it
+			leaf = workspace.getRightLeaf(false);
+			await leaf?.setViewState({ type: VIEW_TYPE_FRONTMATTER_FAST_EDITOR, active: true });
+		}
+
+		// // "Reveal" the leaf in case it is in a collapsed sidebar
+		// if (leaf) {
+		// 	workspace.revealLeaf(leaf);
+		// }
 	}
 }
 

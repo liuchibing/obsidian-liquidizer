@@ -1,13 +1,58 @@
 import { Liquid } from "liquidjs";
 import morphdom from "morphdom";
+import { App, normalizePath } from "obsidian";
 
-export const liquid = new Liquid();
+export function getLiquid(app: App) {
+	return new Liquid({
+		fs: {
+			exists(filepath: string): Promise<boolean> {
+				return app.vault.adapter.exists(normalizePath(filepath));
+			},
+			existsSync(filepath: string): boolean {
+				throw new Error("Function not supported.");
+			},
+			readFile(filepath: string): Promise<string> {
+				return app.vault.adapter.read(normalizePath(filepath));
+			},
+			readFileSync(filepath: string): string {
+				throw new Error("Function not supported.");
+			},
+			resolve(root: string, file: string, ext: string): string {
+				// 1. 如果文件路径本身就是绝对路径（以'/'开头），则直接使用它。
+				//    否则，将其与 root 路径拼接。
+				const basePath = file.startsWith("/")
+					? file
+					: `${root}/${file}`;
+
+				// 2. 检查路径是否已经有扩展名
+				//    简单的检查，可以根据需要做得更复杂
+				const hasExtension = /\.[^/.]+$/.test(basePath);
+
+				// 3. 如果没有扩展名且提供了默认扩展名，则添加它
+				const fullPath =
+					hasExtension || !ext ? basePath : `${basePath}${ext}`;
+
+				// 4. 使用 Obsidian 的 normalizePath 来处理 '..' '///' './' 等，
+				//    并返回一个干净的、相对于 vault 根的路径。
+				//    例如，'templates/pages/../partials/header.md' 会被正确解析为 'templates/partials/header.md'
+				return normalizePath(fullPath);
+			},
+			dirname(file) {
+				const parts = file.split("/");
+				parts.pop();
+				return parts.join("/");
+			},
+			sep: "/",
+		},
+	});
+}
 
 export function diffAndUpdate(oldEl: HTMLElement, newEl: HTMLElement | string) {
 	morphdom(oldEl, newEl, {
 		onBeforeElUpdated: updateAllowed,
-        onBeforeNodeAdded: (el: HTMLElement) => addOrDiscardAllowed(el) ? el : false,
-        onBeforeNodeDiscarded: addOrDiscardAllowed,
+		onBeforeNodeAdded: (el: HTMLElement) =>
+			addOrDiscardAllowed(el) ? el : false,
+		onBeforeNodeDiscarded: addOrDiscardAllowed,
 	});
 }
 
@@ -26,11 +71,11 @@ function updateAllowed(fromEl: HTMLElement, toEl: HTMLElement) {
 }
 
 function addOrDiscardAllowed(el: HTMLElement) {
-    if (!el.classList) return true; // allow addition or discarding of elements without classList (e.g., text nodes)
-    if (el.classList.contains("liquidized")) {
-        return true; // allow addition or discarding of liquidized elements
-    }
-    return false; // disallow addition or discarding of other elements
+	if (!el.classList) return true; // allow addition or discarding of elements without classList (e.g., text nodes)
+	if (el.classList.contains("liquidized")) {
+		return true; // allow addition or discarding of liquidized elements
+	}
+	return false; // disallow addition or discarding of other elements
 }
 
 /** Diffing algorithm to update only changed parts of the DOM */

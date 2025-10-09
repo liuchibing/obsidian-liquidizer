@@ -6,3 +6,11 @@ available in the app when your plugin is enabled.
 If your plugin does not need CSS, delete this file.
 
 */
+
+/* .liquidizer-frontmatter-setting .setting-item-control {
+    max-width: 60%;
+}
+
+.liquidizer-frontmatter-setting .setting-item-control input {
+    width: 100%;
+} */
