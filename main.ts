@@ -100,6 +100,14 @@ export default class LiquidizerPlugin extends Plugin {
 			checkCallback: exportLiquidRenderedDocument,
 		});
 
+		this.addCommand({
+			id: "open-frontmatter-fast-editor",
+			name: "Open Frontmatter Fast Editor",
+			callback: async () => {
+				this.activateView();
+			}
+		});
+
 		this.addRibbonIcon(
 			"file-output",
 			"Export Liquid Rendered Document",
