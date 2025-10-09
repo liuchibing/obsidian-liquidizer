@@ -1,11 +1,8 @@
 import { getLiquid } from "helpers";
 import {
-	getFrontMatterInfo,
 	ItemView,
 	MarkdownView,
 	Notice,
-	parseYaml,
-	stringifyYaml,
 	WorkspaceLeaf,
 	Setting,
 	TAbstractFile,
@@ -282,11 +279,31 @@ export class FrontmatterFastEditor extends ItemView {
 		}
 		// build result
 		const result: FrontmatterVariable[] = [];
-		for (const [key, value] of Object.entries(variables)) {
+		for (const [key] of Object.entries(variables)) {
 			// determine type: if defined in frontmatter, use its type; else default to string.
-			let type: FrontmatterVariable["type"] = frontmatter[key] ? typeof frontmatter[key] : "string";
+			let type: FrontmatterVariable["type"];
 			if (Array.isArray(frontmatter[key])) {
 				type = "array";
+			} else if (frontmatter[key] === null) {
+				type = "null";
+			} else {
+				switch (typeof frontmatter[key]) {
+					case "string":
+						type = "string";
+						break;
+					case "number":
+						type = "number";
+						break;
+					case "boolean":
+						type = "boolean";
+						break;
+					case "object":
+						type = "object";
+						break;
+					default:
+						type = "string";
+						break;
+				}
 			}
 			// guess possible options by analyzing the liquid templates
 			let possibleOptions: any[] | undefined = undefined;
@@ -300,11 +317,11 @@ export class FrontmatterFastEditor extends ItemView {
 				possibleOptions = [true, false];
 				type = "boolean"; // correct type to boolean
 			}
-			// {% if/unless variable == someValue %}
-			// {% if/unless variable != someValue %}
-			// {% if/unless variable contains someValue %}
+			// {% if/unless/elsif variable == someValue %}
+			// {% if/unless/elsif variable != someValue %}
+			// {% if/unless/elsif variable contains someValue %}
 			const equalityRegex = new RegExp(
-				`\\{%-?\\s*(if|unless)\\s+${key}\\s*(==|!=|contains)\\s*([^\\s%]+)\\s*-?%\\}`,
+				`\\{%-?\\s*(if|unless|elsif)\\s+${key}\\s*(==|!=|contains)\\s*([^\\s%]+)\\s*-?%\\}`,
 				"g"
 			);
 			const matches = content.matchAll(equalityRegex);
