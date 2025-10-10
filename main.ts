@@ -15,8 +15,6 @@ import {
 	WorkspaceLeaf,
 } from "obsidian";
 
-// Remember to rename these classes and interfaces!
-
 interface LiquidizerPluginSettings {
 	mySetting: string;
 }

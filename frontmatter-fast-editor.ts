@@ -1,4 +1,5 @@
 import { getLiquid } from "helpers";
+import { findLiquidVariableValues } from "liquid-var-utils";
 import {
 	ItemView,
 	MarkdownView,
@@ -7,7 +8,10 @@ import {
 	Setting,
 	TAbstractFile,
 	TFile,
+	debounce,
 } from "obsidian";
+
+const UPDATE_TIMEOUT = 500;
 
 export const VIEW_TYPE_FRONTMATTER_FAST_EDITOR =
 	"liquidizer-frontmatter-fast-editor";
@@ -56,10 +60,10 @@ export class FrontmatterFastEditor extends ItemView {
 					markdownView.file &&
 					file.path === markdownView.file.path
 				) {
-					setTimeout(() => {
+					debounce(() => {
 						// refresh the view to reflect the updated frontmatter
 						this.updateView(file);
-					}, 100);
+					}, UPDATE_TIMEOUT, true)();
 				}
 			})
 		);
@@ -99,7 +103,7 @@ export class FrontmatterFastEditor extends ItemView {
 				case "string":
 					setting.addText((text) =>
 						text
-							.setValue(variable.currentValue ?? "")
+							.setValue(String(variable.currentValue) ?? "")
 							.onChange(async (value) => {
 								await this.updateFrontmatter(
 									file,
@@ -223,10 +227,10 @@ export class FrontmatterFastEditor extends ItemView {
 		this.app.fileManager.processFrontMatter(file, (frontmatter) => {
 			frontmatter[key] = value;
 		});
-		setTimeout(() => {
+		debounce(() => {
 			// refresh the view to reflect the updated frontmatter
 			this.updateView(file);
-		}, 100);
+		}, UPDATE_TIMEOUT, true)();
 	}
 
 	async pushToFrontmatterArray(file: TFile, key: string, value: any) {
@@ -236,10 +240,10 @@ export class FrontmatterFastEditor extends ItemView {
 			}
 			frontmatter[key].push(value);
 		});
-		setTimeout(() => {
+		debounce(() => {
 			// refresh the view to reflect the updated frontmatter
 			this.updateView(file);
-		}, 100);
+		}, UPDATE_TIMEOUT, true)();
 	}
 
 	async analyze(
@@ -277,85 +281,40 @@ export class FrontmatterFastEditor extends ItemView {
 		if (!variables || Object.keys(variables).length === 0) {
 			return [null, "No liquid variables found in the content."];
 		}
-		// build result
+		const variableValues = findLiquidVariableValues(Object.keys(variables), content);
+		// build FrontmatterVariable array
 		const result: FrontmatterVariable[] = [];
-		for (const [key] of Object.entries(variables)) {
-			// determine type: if defined in frontmatter, use its type; else default to string.
-			let type: FrontmatterVariable["type"];
-			if (Array.isArray(frontmatter[key])) {
+		for (const key in variableValues) {
+			const currentValue = frontmatter[key];
+			let type: FrontmatterVariable["type"] = "string";
+			// determine type based on possible values and current value
+			if (Array.isArray(currentValue)) {
 				type = "array";
-			} else if (frontmatter[key] === null) {
+			} else if (currentValue === null) {
 				type = "null";
-			} else {
-				switch (typeof frontmatter[key]) {
-					case "string":
-						type = "string";
-						break;
-					case "number":
-						type = "number";
-						break;
-					case "boolean":
-						type = "boolean";
-						break;
-					case "object":
-						type = "object";
-						break;
-					default:
-						type = "string";
-						break;
-				}
+			} else if (typeof currentValue === "object") {
+				type = "object";
+			} else if (typeof currentValue === "number") {
+				type = "number";
+			} else if (typeof currentValue === "boolean") {
+				type = "boolean";
+			} else if (variableValues[key].length === 0) {
+				type = "string";
+			} else if (variableValues[key].every(v => typeof v === "number")) {
+				type = "number";
+			} else if (variableValues[key].every(v => typeof v === "boolean")) {
+				type = "boolean";
+			} else if (variableValues[key].every(v => v === null)) {
+				type = "null";
+			} else if (variableValues[key].every(v => typeof v === "object")) {
+				type = "object";
 			}
-			// guess possible options by analyzing the liquid templates
-			let possibleOptions: any[] | undefined = undefined;
-			// if the variable is used in a conditional statement, we can guess possible options
-			// {% if bool_variable %}
-			const conditionalRegex = new RegExp(
-				`\\{%-?\\s*(if|unless)\\s+${key}\\s*-?%\\}`,
-				"g"
-			);
-			if (conditionalRegex.test(content)) {
-				possibleOptions = [true, false];
-				type = "boolean"; // correct type to boolean
-			}
-			// {% if/unless/elsif variable ==/!=/>/</>=/<=/contains someValue %}
-			const equalityRegex = new RegExp(
-				`\\{%-?\\s*(if|unless|elsif)\\s+${key}\\s*(==|!=|>|<|>=|<=|contains)\\s*([^\\s%]+|\\".*?\\")\\s*-?%\\}`,
-				"g"
-			);
-			const matches = content.matchAll(equalityRegex);
-			for (const match of matches) {
-				if (match[3]) {
-					let option: string | boolean | number = match[3];
-					// try to parse as number or boolean
-					if (option === "true") {
-						option = true;
-						type = "boolean"; // correct type to boolean
-					} else if (option === "false") {
-						option = false;
-						type = "boolean"; // correct type to boolean
-					} else if (!isNaN(Number(option))) {
-						option = Number(option);
-						type = "number"; // correct type to number
-					} else {
-						// remove quotes if present
-						option = option.replace(/^['"]|['"]$/g, "");
-						if (type !== "array") {
-							type = "string"; // correct type to string
-						}
-					}
-					if (!possibleOptions) {
-						possibleOptions = [];
-					}
-					if (!possibleOptions.includes(option)) {
-						possibleOptions.push(option);
-					}
-				}
-			}
+			
 			result.push({
 				key,
-				type: type as FrontmatterVariable["type"],
-				currentValue: frontmatter[key],
-				possibleOptions,
+				type,
+				currentValue,
+				possibleOptions: variableValues[key],
 			});
 		}
 		return [result, null];
@@ -365,6 +324,6 @@ export class FrontmatterFastEditor extends ItemView {
 interface FrontmatterVariable {
 	key: string;
 	type: "string" | "number" | "boolean" | "array" | "object" | "null";
-	currentValue: any;
-	possibleOptions?: any[];
+	currentValue: unknown;
+	possibleOptions?: unknown[];
 }
