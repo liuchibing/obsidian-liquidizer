@@ -213,7 +213,7 @@ export class FrontmatterFastEditor extends ItemView {
 								);
 						}
 					});
-					dropdown.selectEl.style.width = "20px";
+					dropdown.selectEl.addClass("liquidizer-frontmatter-dropdown-select");
 				});
 			}
 		});
@@ -317,11 +317,9 @@ export class FrontmatterFastEditor extends ItemView {
 				possibleOptions = [true, false];
 				type = "boolean"; // correct type to boolean
 			}
-			// {% if/unless/elsif variable == someValue %}
-			// {% if/unless/elsif variable != someValue %}
-			// {% if/unless/elsif variable contains someValue %}
+			// {% if/unless/elsif variable ==/!=/>/</>=/<=/contains someValue %}
 			const equalityRegex = new RegExp(
-				`\\{%-?\\s*(if|unless|elsif)\\s+${key}\\s*(==|!=|contains)\\s*([^\\s%]+)\\s*-?%\\}`,
+				`\\{%-?\\s*(if|unless|elsif)\\s+${key}\\s*(==|!=|>|<|>=|<=|contains)\\s*([^\\s%]+|\\".*?\\")\\s*-?%\\}`,
 				"g"
 			);
 			const matches = content.matchAll(equalityRegex);

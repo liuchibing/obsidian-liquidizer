@@ -14,3 +14,8 @@ If your plugin does not need CSS, delete this file.
 .liquidizer-frontmatter-setting .setting-item-control input {
     width: 100%;
 } */
+
+.liquidizer-frontmatter-dropdown-select {
+    width: 20px !important;
+    overflow: hidden !important;
+}
