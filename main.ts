@@ -16,11 +16,11 @@ import {
 } from "obsidian";
 
 interface LiquidizerPluginSettings {
-	mySetting: string;
+	stripFrontmatter: boolean;
 }
 
 const DEFAULT_SETTINGS: LiquidizerPluginSettings = {
-	mySetting: "default",
+	stripFrontmatter: true,
 };
 
 export default class LiquidizerPlugin extends Plugin {
@@ -71,7 +71,7 @@ export default class LiquidizerPlugin extends Plugin {
 							);
 						}
 						// render content with liquid
-						return getLiquid(this.app).parseAndRender(content, {
+						return getLiquid(this.app, this.settings.stripFrontmatter).parseAndRender(content, {
 							...frontmatter,
 						});
 					})
@@ -143,7 +143,7 @@ export default class LiquidizerPlugin extends Plugin {
 		// Register the view (WIP)
 		this.registerView(
 			VIEW_TYPE_FRONTMATTER_FAST_EDITOR,
-			(leaf) => new FrontmatterFastEditor(leaf)
+			(leaf) => new FrontmatterFastEditor(leaf, this)
 		);
 		this.activateView()
 
@@ -176,7 +176,7 @@ export default class LiquidizerPlugin extends Plugin {
 						return;
 					}
 					try {
-						const rendered = await getLiquid(this.app).parseAndRender(
+						const rendered = await getLiquid(this.app, this.settings.stripFrontmatter).parseAndRender(
 							container.outerHTML,
 							{ ...context.frontmatter }
 						);
@@ -270,14 +270,13 @@ class LiquidizerPluginSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName("Setting #1")
-			.setDesc("It's a secret")
-			.addText((text) =>
-				text
-					.setPlaceholder("Enter your secret")
-					.setValue(this.plugin.settings.mySetting)
+			.setName("Strip frontmatter when rendering file")
+			.setDesc("If enabled, the frontmatter will be removed from the file content when accessed by path.")
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.stripFrontmatter)
 					.onChange(async (value) => {
-						this.plugin.settings.mySetting = value;
+						this.plugin.settings.stripFrontmatter = value;
 						await this.plugin.saveSettings();
 					})
 			);

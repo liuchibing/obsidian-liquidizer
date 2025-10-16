@@ -1,5 +1,6 @@
 import { getLiquid } from "helpers";
 import { findLiquidVariableValues } from "liquid-var-utils";
+import LiquidizerPlugin from "main";
 import {
 	ItemView,
 	MarkdownView,
@@ -17,8 +18,11 @@ export const VIEW_TYPE_FRONTMATTER_FAST_EDITOR =
 	"liquidizer-frontmatter-fast-editor";
 
 export class FrontmatterFastEditor extends ItemView {
-	constructor(leaf: WorkspaceLeaf) {
+	plugin: LiquidizerPlugin;
+
+	constructor(leaf: WorkspaceLeaf, plugin: LiquidizerPlugin) {
 		super(leaf);
+		this.plugin = plugin;
 	}
 
 	getViewType() {
@@ -271,7 +275,7 @@ export class FrontmatterFastEditor extends ItemView {
 			];
 		}
 		// analyze file content to find liquid variables using liquidjs
-		const liquidAnalysis = await getLiquid(this.app).parseAndAnalyze(
+		const liquidAnalysis = await getLiquid(this.app, this.plugin.settings.stripFrontmatter).parseAndAnalyze(
 			content
 		);
 		if (!liquidAnalysis) {

@@ -1,8 +1,8 @@
 import { Liquid } from "liquidjs";
 import morphdom from "morphdom";
-import { App, normalizePath } from "obsidian";
+import { App, getFrontMatterInfo, normalizePath } from "obsidian";
 
-export function getLiquid(app: App) {
+export function getLiquid(app: App, stripFrontmatter = true): Liquid {
 	return new Liquid({
 		fs: {
 			exists(filepath: string): Promise<boolean> {
@@ -11,8 +11,13 @@ export function getLiquid(app: App) {
 			existsSync(filepath: string): boolean {
 				throw new Error("Function not supported.");
 			},
-			readFile(filepath: string): Promise<string> {
-				return app.vault.adapter.read(normalizePath(filepath));
+			async readFile(filepath: string): Promise<string> {
+				const content = await app.vault.adapter.read(normalizePath(filepath));
+				if (!stripFrontmatter) {
+					return content;
+				}
+				const frontmatterInfo = getFrontMatterInfo(content);
+				return content.slice(frontmatterInfo.contentStart);
 			},
 			readFileSync(filepath: string): string {
 				throw new Error("Function not supported.");
