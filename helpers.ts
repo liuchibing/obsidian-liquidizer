@@ -1,9 +1,11 @@
 import { Liquid } from "liquidjs";
 import morphdom from "morphdom";
-import { App, getFrontMatterInfo, normalizePath } from "obsidian";
+import { App, getFrontMatterInfo, getLinkpath, normalizePath, parseLinktext } from "obsidian";
 
 export function getLiquid(app: App, stripFrontmatter = true): Liquid {
 	return new Liquid({
+		
+		extname: ".md",
 		fs: {
 			exists(filepath: string): Promise<boolean> {
 				return app.vault.adapter.exists(normalizePath(filepath));
@@ -23,6 +25,15 @@ export function getLiquid(app: App, stripFrontmatter = true): Liquid {
 				throw new Error("Function not supported.");
 			},
 			resolve(root: string, file: string, ext: string): string {
+				// console.log({ root, file, ext });
+				// 如果file是wikilink格式（例如 [[My Note]]），则提取实际的文件名
+				const wikiLinkMatch = file.match(/^\[\[(.+?)\]\]$/);
+				if (wikiLinkMatch) {
+					const link = getLinkpath(wikiLinkMatch[1]);
+					// console.log({ link });
+					file = link;
+				}
+
 				// 1. 如果文件路径本身就是绝对路径（以'/'开头），则直接使用它。
 				//    否则，将其与 root 路径拼接。
 				const basePath = file.startsWith("/")
@@ -40,6 +51,7 @@ export function getLiquid(app: App, stripFrontmatter = true): Liquid {
 				// 4. 使用 Obsidian 的 normalizePath 来处理 '..' '///' './' 等，
 				//    并返回一个干净的、相对于 vault 根的路径。
 				//    例如，'templates/pages/../partials/header.md' 会被正确解析为 'templates/partials/header.md'
+				// console.log({ normalizePath: normalizePath(fullPath) });
 				return normalizePath(fullPath);
 			},
 			dirname(file) {

@@ -276,7 +276,8 @@ export class FrontmatterFastEditor extends ItemView {
 		}
 		// analyze file content to find liquid variables using liquidjs
 		const liquidAnalysis = await getLiquid(this.app, this.plugin.settings.stripFrontmatter).parseAndAnalyze(
-			content
+			content,
+			file.path
 		);
 		if (!liquidAnalysis) {
 			return [null, "Failed to analyze liquid content."];

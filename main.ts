@@ -39,7 +39,8 @@ export default class LiquidizerPlugin extends Plugin {
 					// This command can be run
 					return true;
 				}
-				const filePath = markdownView.file.path.replace(
+				const sourceFilePath = markdownView.file.path;
+				const filePath = sourceFilePath.replace(
 					".md",
 					"_rendered.md"
 				);
@@ -71,7 +72,9 @@ export default class LiquidizerPlugin extends Plugin {
 							);
 						}
 						// render content with liquid
-						return getLiquid(this.app, this.settings.stripFrontmatter).parseAndRender(content, {
+						const liquid = getLiquid(this.app, this.settings.stripFrontmatter);
+						const template = liquid.parse(content, sourceFilePath);
+						return liquid.render(template, {
 							...frontmatter,
 						});
 					})
