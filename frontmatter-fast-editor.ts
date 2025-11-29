@@ -227,6 +227,7 @@ export class FrontmatterFastEditor extends ItemView {
 		});
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	async updateFrontmatter(file: TFile, key: string, value: any) {
 		this.app.fileManager.processFrontMatter(file, (frontmatter) => {
 			frontmatter[key] = value;
@@ -237,6 +238,7 @@ export class FrontmatterFastEditor extends ItemView {
 		}, UPDATE_TIMEOUT, true)();
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	async pushToFrontmatterArray(file: TFile, key: string, value: any) {
 		this.app.fileManager.processFrontMatter(file, (frontmatter) => {
 			if (!Array.isArray(frontmatter[key])) {

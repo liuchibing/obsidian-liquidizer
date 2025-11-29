@@ -1,6 +1,6 @@
 import { Liquid } from "liquidjs";
 import morphdom from "morphdom";
-import { App, getFrontMatterInfo, getLinkpath, normalizePath, parseLinktext } from "obsidian";
+import { App, getFrontMatterInfo, getLinkpath, normalizePath } from "obsidian";
 
 export function getLiquid(app: App, stripFrontmatter = true): Liquid {
 	return new Liquid({
