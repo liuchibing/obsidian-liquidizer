@@ -29,7 +29,7 @@ export function getLiquid(app: App, stripFrontmatter = true): Liquid {
 				// 如果file是wikilink格式（例如 [[My Note]]），则提取实际的文件名
 				const wikiLinkMatch = file.match(/^\[\[(.+?)\]\]$/);
 				if (wikiLinkMatch) {
-					const link = getLinkpath(wikiLinkMatch[1]);
+					const link = app.metadataCache.getFirstLinkpathDest(wikiLinkMatch[1], root)?.path || getLinkpath(wikiLinkMatch[1]);
 					// console.log({ link });
 					file = link;
 				}
@@ -51,7 +51,7 @@ export function getLiquid(app: App, stripFrontmatter = true): Liquid {
 				// 4. 使用 Obsidian 的 normalizePath 来处理 '..' '///' './' 等，
 				//    并返回一个干净的、相对于 vault 根的路径。
 				//    例如，'templates/pages/../partials/header.md' 会被正确解析为 'templates/partials/header.md'
-				// console.log({ normalizePath: normalizePath(fullPath) });
+				console.log({ normalizePath: normalizePath(fullPath) });
 				return normalizePath(fullPath);
 			},
 			dirname(file) {

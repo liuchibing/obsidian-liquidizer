@@ -148,7 +148,9 @@ export default class LiquidizerPlugin extends Plugin {
 			VIEW_TYPE_FRONTMATTER_FAST_EDITOR,
 			(leaf) => new FrontmatterFastEditor(leaf, this)
 		);
-		this.activateView()
+		this.app.workspace.onLayoutReady(() => {
+			this.activateView();
+		});
 
 		// Provide Live Preview of Liquid Templates
 		this.registerMarkdownPostProcessor(async (element, context) => {
