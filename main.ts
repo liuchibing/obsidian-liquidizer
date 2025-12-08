@@ -2,7 +2,7 @@ import {
 	FrontmatterFastEditor,
 	VIEW_TYPE_FRONTMATTER_FAST_EDITOR,
 } from "frontmatter-fast-editor";
-import { diffAndUpdate, getLiquid } from "helpers";
+import { copyToClipboard, diffAndUpdate, getLiquid } from "helpers";
 import {
 	App,
 	getFrontMatterInfo,
@@ -84,7 +84,7 @@ export default class LiquidizerPlugin extends Plugin {
 						// strip out frontmatter and copy to pasteboard
 						const frontmatterInfo = getFrontMatterInfo(rendered);
 						const contentWithoutFrontmatter = frontmatterInfo.exists ? rendered.slice(frontmatterInfo.contentStart) : rendered;
-						navigator.clipboard.writeText(contentWithoutFrontmatter);
+						copyToClipboard(contentWithoutFrontmatter);
 						new Notice("Exported rendered document!");
 					})
 					.catch((error) => {

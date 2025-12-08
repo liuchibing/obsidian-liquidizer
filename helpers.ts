@@ -1,10 +1,9 @@
 import { Liquid } from "liquidjs";
 import morphdom from "morphdom";
-import { App, getFrontMatterInfo, getLinkpath, normalizePath } from "obsidian";
+import { App, getFrontMatterInfo, getLinkpath, normalizePath, Notice, Platform } from "obsidian";
 
 export function getLiquid(app: App, stripFrontmatter = true): Liquid {
 	return new Liquid({
-		
 		extname: ".md",
 		fs: {
 			exists(filepath: string): Promise<boolean> {
@@ -14,7 +13,9 @@ export function getLiquid(app: App, stripFrontmatter = true): Liquid {
 				throw new Error("Function not supported.");
 			},
 			async readFile(filepath: string): Promise<string> {
-				const content = await app.vault.adapter.read(normalizePath(filepath));
+				const content = await app.vault.adapter.read(
+					normalizePath(filepath)
+				);
 				if (!stripFrontmatter) {
 					return content;
 				}
@@ -29,7 +30,11 @@ export function getLiquid(app: App, stripFrontmatter = true): Liquid {
 				// 如果file是wikilink格式（例如 [[My Note]]），则提取实际的文件名
 				const wikiLinkMatch = file.match(/^\[\[(.+?)\]\]$/);
 				if (wikiLinkMatch) {
-					const link = app.metadataCache.getFirstLinkpathDest(wikiLinkMatch[1], root)?.path || getLinkpath(wikiLinkMatch[1]);
+					const link =
+						app.metadataCache.getFirstLinkpathDest(
+							wikiLinkMatch[1],
+							root
+						)?.path || getLinkpath(wikiLinkMatch[1]);
 					// console.log({ link });
 					file = link;
 				}
@@ -132,5 +137,56 @@ export function diffAndUpdate_origin(oldEl: HTMLElement, newEl: HTMLElement) {
 				oldEl.replaceChild(newChild.cloneNode(true), oldChild);
 			}
 		}
+	}
+}
+
+/**
+ * 兼容 iOS 的剪贴板复制函数
+ */
+export function copyToClipboard(text: string) {
+	// 判断是否为移动端 (包含 iOS 和 Android，但主要修复 iOS 问题)
+	if (Platform.isIosApp) {
+		// --- iOS/移动端 专用方案 (模拟 DOM 操作) ---
+		const textArea = document.createElement("textarea");
+		textArea.value = text;
+
+		// 确保元素不可见，但存在于 DOM 中
+		textArea.style.position = "fixed"; // 避免页面滚动
+		textArea.style.left = "-9999px";
+		textArea.style.top = "0";
+		textArea.setAttribute("readonly", ""); // 防止在 iOS 上弹出键盘
+
+		document.body.appendChild(textArea);
+
+		// 选中所有文本
+		textArea.select();
+		textArea.setSelectionRange(0, 99999); // 专门针对 iOS 的兼容性写法
+
+		try {
+			// 执行旧版复制命令
+			const successful = document.execCommand("copy");
+			if (successful) {
+				new Notice("已复制到剪贴板");
+			} else {
+				new Notice("复制失败");
+			}
+		} catch (err) {
+			console.error("iOS 复制失败", err);
+			new Notice("复制出错");
+		} finally {
+			// 清理 DOM
+			document.body.removeChild(textArea);
+		}
+	} else {
+		// --- 桌面端 标准方案 ---
+		navigator.clipboard
+			.writeText(text)
+			.then(() => {
+				new Notice("已复制到剪贴板");
+			})
+			.catch((err) => {
+				console.error("复制失败", err);
+				new Notice("复制失败");
+			});
 	}
 }
