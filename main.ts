@@ -78,9 +78,13 @@ export default class LiquidizerPlugin extends Plugin {
 							...frontmatter,
 						});
 					})
-					.then((rendered) => {
+					.then((rendered: string) => {
 						// if file exists, overwrite it, otherwise create a new file
 						this.app.vault.adapter.write(filePath, rendered);
+						// strip out frontmatter and copy to pasteboard
+						const frontmatterInfo = getFrontMatterInfo(rendered);
+						const contentWithoutFrontmatter = frontmatterInfo.exists ? rendered.slice(frontmatterInfo.contentStart) : rendered;
+						navigator.clipboard.writeText(contentWithoutFrontmatter);
 						new Notice("Exported rendered document!");
 					})
 					.catch((error) => {
