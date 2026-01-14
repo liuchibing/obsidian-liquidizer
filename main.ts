@@ -2,7 +2,7 @@ import {
 	FrontmatterFastEditor,
 	VIEW_TYPE_FRONTMATTER_FAST_EDITOR,
 } from "frontmatter-fast-editor";
-import { copyToClipboard, diffAndUpdate, getLiquid } from "helpers";
+import { copyToClipboard, getLiquid } from "helpers";
 import {
 	App,
 	getFrontMatterInfo,
@@ -156,69 +156,69 @@ export default class LiquidizerPlugin extends Plugin {
 			this.activateView();
 		});
 
-		// Provide Live Preview of Liquid Templates
-		this.registerMarkdownPostProcessor(async (element, context) => {
-			// Check if the frontmatter has a specific flag to enable liquid processing
-			if (!context.frontmatter.liquidize) {
-				return;
-			}
-			element.addClass("liquidized");
-			element.querySelectorAll("*").forEach((element) => {
-				element.classList.add("liquidized");
-			});
-			if (element.parentElement) {
-				const buttons = element.parentElement.getElementsByClassName(
-					"liquid-render-button"
-				);
-				if (buttons.length > 0) {
-					// button already exists
-					return;
-				}
-				// Add a button to render the liquid template
-				const button = element.createEl("button");
-				button.innerText = "Render Liquid Template";
-				button.className = "liquid-render-button";
-				button.style.marginBottom = "1em";
-				button.onclick = async () => {
-					const container = button.parentElement?.parentElement;
-					if (!container) {
-						return;
-					}
-					try {
-						const rendered = await getLiquid(this.app, this.settings.stripFrontmatter).parseAndRender(
-							container.outerHTML,
-							{ ...context.frontmatter }
-						);
-						// Compare the rendered DOM with the current DOM and update only different parts
-						// const tempDiv = document.createElement("div");
-						// tempDiv.outerHTML = rendered;
-						diffAndUpdate(container, rendered);
-					} catch (error) {
-						new Notice("Error rendering liquid template: " + error);
-						console.error(
-							"Error rendering liquid template:",
-							error
-						);
-					}
-				};
-			}
-		});
+		// // Provide Live Preview of Liquid Templates
+		// this.registerMarkdownPostProcessor(async (element, context) => {
+		// 	// Check if the frontmatter has a specific flag to enable liquid processing
+		// 	if (!context.frontmatter.liquidize) {
+		// 		return;
+		// 	}
+		// 	element.addClass("liquidized");
+		// 	element.querySelectorAll("*").forEach((element) => {
+		// 		element.classList.add("liquidized");
+		// 	});
+		// 	if (element.parentElement) {
+		// 		const buttons = element.parentElement.getElementsByClassName(
+		// 			"liquid-render-button"
+		// 		);
+		// 		if (buttons.length > 0) {
+		// 			// button already exists
+		// 			return;
+		// 		}
+		// 		// Add a button to render the liquid template
+		// 		const button = element.createEl("button");
+		// 		button.innerText = "Render Liquid Template";
+		// 		button.className = "liquid-render-button";
+		// 		button.style.marginBottom = "1em";
+		// 		button.onclick = async () => {
+		// 			const container = button.parentElement?.parentElement;
+		// 			if (!container) {
+		// 				return;
+		// 			}
+		// 			try {
+		// 				const rendered = await getLiquid(this.app, this.settings.stripFrontmatter).parseAndRender(
+		// 					container.outerHTML,
+		// 					{ ...context.frontmatter }
+		// 				);
+		// 				// Compare the rendered DOM with the current DOM and update only different parts
+		// 				// const tempDiv = document.createElement("div");
+		// 				// tempDiv.outerHTML = rendered;
+		// 				diffAndUpdate(container, rendered);
+		// 			} catch (error) {
+		// 				new Notice("Error rendering liquid template: " + error);
+		// 				console.error(
+		// 					"Error rendering liquid template:",
+		// 					error
+		// 				);
+		// 			}
+		// 		};
+		// 	}
+		// });
 
-		// when frontmatter changes, re-render the preview
-		this.registerEvent(
-			this.app.vault.on("modify", (file) => {
-				const markdownView =
-					this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (
-					markdownView &&
-					markdownView.file &&
-					markdownView.file.path === file.path &&
-					markdownView.getMode() === "preview"
-				) {
-					markdownView.previewMode.rerender(true);
-				}
-			})
-		);
+		// // when frontmatter changes, re-render the preview
+		// this.registerEvent(
+		// 	this.app.vault.on("modify", (file) => {
+		// 		const markdownView =
+		// 			this.app.workspace.getActiveViewOfType(MarkdownView);
+		// 		if (
+		// 			markdownView &&
+		// 			markdownView.file &&
+		// 			markdownView.file.path === file.path &&
+		// 			markdownView.getMode() === "preview"
+		// 		) {
+		// 			markdownView.previewMode.rerender(true);
+		// 		}
+		// 	})
+		// );
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new LiquidizerPluginSettingTab(this.app, this));
